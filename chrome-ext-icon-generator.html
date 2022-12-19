@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chrome Extension Images Generator</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.5.0/jszip.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.2/FileSaver.min.js"></script>
+        <!-- Add some CSS to style the loading spinner -->
+        <style>
+        body {
+            background-color: #f8f8f8;
+            font-family: 'Open Sans', sans-serif;
+            padding: 20px;
+        }
+        input,
+        button {
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 2px #ccc;
+        }
+        button {
+            /* Add a hover effect to the button */
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        button:hover {
+            box-shadow: 0 4px 4px #ccc;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px;
+        }
+        .lds-ring {
+            display: inline-block;
+            position: relative;
+            width: 64px;
+            height: 64px;
+        }
+        .lds-ring div {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 51px;
+            height: 51px;
+            margin: 6px;
+            border: 6px solid #fff;
+            border-radius: 50%;
+            animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            border-color: #fff transparent transparent transparent;
+        }
+        .lds-ring div:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+        .lds-ring div:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+        .lds-ring div:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+        @keyframes lds-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        </style>
+    </head>
+    <body>
+        <!-- Add a container element for the loading spinner -->
+        <div id="loading-container">
+            <!-- Add the loading spinner -->
+            <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+        </div>
+        <!-- The input element to select the image file -->
+        <label for="input">Select an image to resize:</label>
+        <input type="file" id="input" />
+
+        <!-- The canvas elements to display the resized images -->
+        <canvas id="canvas-16" width="16" height="16"></canvas>
+        <canvas id="canvas-32" width="32" height="32"></canvas>
+        <canvas id="canvas-48" width="48" height="48"></canvas>
+        <canvas id="canvas-128" width="128" height="128"></canvas>
+
+        <!-- The link element to download the zip file -->
+        <button id="download">Download</button>
+
+        <script>
+            const input = document.getElementById('input');
+            const canvas16 = document.getElementById('canvas-16');
+            const canvas32 = document.getElementById('canvas-32');
+            const canvas48 = document.getElementById('canvas-48');
+            const canvas128 = document.getElementById('canvas-128');
+
+            input.addEventListener('change', () => {            
+                const file = input.files[0];
+                // Check if the file is an image
+                if (!file.type.match(/image.*/)) {
+                    // Display an error message
+                    alert('Please select a valid image file');
+                    return;
+                }
+
+                // Show the loading spinner
+                document.getElementById('loading-container').style.display = 'block';
+
+                // Create an image object from the file
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+
+                // Wait for the image to load
+                img.onload = () => {
+                    // Draw the image to the canvas at the desired sizes
+                    canvas16.getContext('2d').drawImage(img, 0, 0, 16, 16);
+                    canvas32.getContext('2d').drawImage(img, 0, 0, 32, 32);
+                    canvas48.getContext('2d').drawImage(img, 0, 0, 48, 48);
+                    canvas128.getContext('2d').drawImage(img, 0, 0, 128, 128);
+
+                    // Release the object URL
+                    URL.revokeObjectURL(img.src);
+
+                    // When the image has finished processing, hide the loading spinner
+                    document.getElementById('loading-container').style.display = 'none';
+                };
+            });
+
+            const download = document.getElementById('download');
+            download.addEventListener('click', () => {
+                console.log("Click");
+                // Create a JSZip object
+                const zip = new JSZip();
+
+                // Get the data URL of the resized images
+                const dataURL16 = canvas16.toDataURL('image/png');
+                const dataURL32 = canvas32.toDataURL('image/png');
+                const dataURL48 = canvas48.toDataURL('image/png');
+                const dataURL128 = canvas128.toDataURL('image/png');
+
+                // Convert the data URLs to base64
+                const base64_16 = dataURL16.split(',')[1];
+                const base64_32 = dataURL32.split(',')[1];
+                const base64_48 = dataURL48.split(',')[1];
+                const base64_128 = dataURL128.split(',')[1];
+
+                // Add the images to the zip file
+                zip.file('16.png', base64_16, { base64: true });
+                zip.file('32.png', base64_32, { base64: true });
+                zip.file('48.png', base64_48, { base64: true });
+                zip.file('128.png', base64_128, { base64: true });
+
+                // Generate the zip file and trigger the download
+                zip.generateAsync({ type: 'blob' }).then(blob => {
+                    saveAs(blob, "resized-images.zip");
+                });
+            });
+        </script>
+    </body>
+</html>
